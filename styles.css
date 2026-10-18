@@ -23,6 +23,11 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   font-family: "PP Neue Montreal", sans-serif;
   background-color: var(--deep);
@@ -373,6 +378,7 @@ section {
 }
 
 .marquee {
+  overflow: hidden;
   padding: 2.5rem 0;
   background-color: var(--ink);
   color: var(--on-accent);
