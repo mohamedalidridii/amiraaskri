@@ -115,8 +115,9 @@ window.addEventListener("pageshow", (e) => {
   if (e.persisted) gsap.set(overlay, { yPercent: -100 });
 });
 
-// Preloader on every full load, skipped when arriving from an internal link
-let showPreloader = !reduceMotion;
+// Preloader on every full load, skipped when arriving from an internal link.
+// With reduced motion it still shows, as a simple fade.
+let showPreloader = true;
 try {
   if (sessionStorage.getItem("internal-nav")) showPreloader = false;
   sessionStorage.removeItem("internal-nav");
@@ -155,31 +156,37 @@ function playPreloader() {
   const line = preloader.querySelector(".preloader-line span");
   const progress = { value: 0 };
 
-  const tl = gsap
-    .timeline()
-    .fromTo(
+  const tl = gsap.timeline();
+  if (reduceMotion) {
+    tl.fromTo(
+      ".preloader-signature",
+      { clipPath: "inset(0% 0% 0% 0%)", opacity: 0 },
+      { opacity: 1, duration: 0.8 },
+    );
+  } else {
+    tl.fromTo(
       ".preloader-signature",
       { clipPath: "inset(0% 100% 0% 0%)" },
       { clipPath: "inset(0% 0% 0% 0%)", duration: 1.8, ease: "power2.inOut" },
-    )
-    .from(
-      ".preloader-sub, .preloader-ar",
-      { opacity: 0, y: 12, stagger: 0.15, duration: 0.8, ease: "power3.out" },
-      "-=0.9",
-    )
-    .to(
-      progress,
-      {
-        value: 100,
-        duration: 2.4,
-        ease: "power2.inOut",
-        onUpdate: () => {
-          count.textContent = Math.round(progress.value);
-          gsap.set(line, { scaleX: progress.value / 100 });
-        },
-      },
-      0,
     );
+  }
+  tl.from(
+    ".preloader-sub, .preloader-ar",
+    { opacity: 0, y: 12, stagger: 0.15, duration: 0.8, ease: "power3.out" },
+    "-=0.9",
+  ).to(
+    progress,
+    {
+      value: 100,
+      duration: 2.4,
+      ease: "power2.inOut",
+      onUpdate: () => {
+        count.textContent = Math.round(progress.value);
+        gsap.set(line, { scaleX: progress.value / 100 });
+      },
+    },
+    0,
+  );
 
   const done = new Promise((resolve) =>
     tl.eventCallback("onComplete", resolve),
@@ -199,6 +206,16 @@ export const introStarted = fontsReady.then(() => preloader && playPreloader());
 introStarted.then(() => {
   if (reduceMotion) {
     gsap.set(overlay, { yPercent: -100 });
+    if (preloader) {
+      gsap.to(preloader, {
+        opacity: 0,
+        duration: 0.5,
+        onComplete: () => {
+          preloader.remove();
+          lenis.start();
+        },
+      });
+    }
     return;
   }
 

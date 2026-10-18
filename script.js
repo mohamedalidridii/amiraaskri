@@ -210,12 +210,13 @@ for (let i = 0; i < looseCount; i++) {
     Math.random() * Math.PI,
   );
   leaf.scale.setScalar(0.5 + Math.random() * 0.5);
-  addFloater(
-    leaf,
-    (Math.random() - 0.5) * 11,
-    (Math.random() - 0.5) * 9,
-    -5 + Math.random() * 6,
-  );
+  // Keep the title (top left) readable: re-roll positions that land behind it
+  let x, y;
+  do {
+    x = (Math.random() - 0.5) * 11;
+    y = (Math.random() - 0.5) * 9;
+  } while (!isMobile && x < 0.8 && y > -0.2);
+  addFloater(leaf, x, y, -5 + Math.random() * 6);
 }
 
 // Leaves grow in when the page intro starts

@@ -1,6 +1,10 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  // Expose the dev server on the local network so it can be opened on a phone
+  server: {
+    host: true,
+  },
   build: {
     rolldownOptions: {
       input: {
