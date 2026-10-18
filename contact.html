@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact & RDV — Amira Askri, Diététicienne Nutritionniste</title>
+    <meta
+      name="description"
+      content="Prendre rendez-vous avec Amira Askri, diététicienne-nutritionniste : Rue des Martyrs, Résidence Jannet, El Mourouj 5, Ben Arous."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-page="contact">
+    <div class="page-transition"></div>
+
+    <header class="nav">
+      <a href="/" class="logo" aria-label="Amira Askri — Accueil">
+        <span class="logo-text">
+          <span class="logo-name">Amira Askri</span>
+          <span class="logo-sub">Diététicienne · Nutritionniste</span>
+        </span>
+      </a>
+      <nav class="nav-links">
+        <a href="/" data-nav="accueil">Accueil</a>
+        <a href="/a-propos.html" data-nav="a-propos">À propos</a>
+        <a href="/services.html" data-nav="services">Services</a>
+        <a href="/conseils.html" data-nav="conseils">Conseils</a>
+        <a href="/contact.html" data-nav="contact">Contact</a>
+      </nav>
+      <a href="/contact.html" class="btn nav-cta">Prendre RDV</a>
+      <button class="burger" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span>
+      </button>
+    </header>
+    <div class="menu" aria-hidden="true"></div>
+
+    <section class="page-hero contact">
+      <div>
+        <p class="eyebrow" data-intro>Contact · <span class="ar" lang="ar">اتصل بي</span></p>
+        <h1 data-split="load">Venez me voir à <em>El Mourouj</em></h1>
+        <address data-intro>
+          Rue des Martyrs, Résidence Jannet<br />
+          El Mourouj 5, Ben Arous — Tunisie<br />
+          <span class="ar" lang="ar">المروج 5، بن عروس</span>
+        </address>
+        <p class="note" data-intro>Je vous reçois sur rendez-vous.</p>
+        <div class="actions" data-intro>
+          <a class="btn" href="tel:+21600000000">M'appeler</a>
+          <a
+            class="btn outline"
+            href="https://www.google.com/maps/search/?api=1&query=Amira+Askri+Di%C3%A9t%C3%A9ticienne+El+Mourouj"
+            target="_blank"
+            rel="noopener"
+            >Itinéraire</a
+          >
+          <a class="btn outline" href="https://www.med.tn/" target="_blank" rel="noopener">Med.tn</a>
+        </div>
+      </div>
+      <iframe
+        class="map"
+        data-intro
+        title="Cabinet d'Amira Askri à El Mourouj 5"
+        src="https://www.google.com/maps?q=Rue+des+Martyrs,+El+Mourouj+5,+Ben+Arous,+Tunisie&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+      ></iframe>
+    </section>
+
+    <section class="block-section light">
+      <p class="eyebrow">Rendez-vous · <span class="ar" lang="ar">احجز موعدك</span></p>
+      <h2 data-split="scroll">Écrivez-moi</h2>
+      <div class="form-grid">
+      <form class="form" id="rdv-form">
+        <label data-reveal>
+          Nom complet
+          <input type="text" name="nom" required autocomplete="name" />
+        </label>
+        <label data-reveal>
+          Téléphone
+          <input type="tel" name="tel" required autocomplete="tel" />
+        </label>
+        <label data-reveal>
+          Motif
+          <select name="motif">
+            <option>Gestion du poids</option>
+            <option>Nutrition infantile</option>
+            <option>Diabète / cholestérol / intolérances</option>
+            <option>Ramadan / jeûne intermittent</option>
+            <option>Autre</option>
+          </select>
+        </label>
+        <label data-reveal>
+          Message
+          <textarea name="message"></textarea>
+        </label>
+        <button class="btn" type="submit" data-reveal>Envoyer ma demande</button>
+      </form>
+      <div class="media portrait" data-reveal>
+        <img class="face" data-parallax src="/amira5.jpg" alt="Amira Askri au micro" />
+      </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="footer-top">
+        <p class="footer-title" data-reveal>
+          Je vous accompagne, une assiette à la fois.
+          <span class="ar" lang="ar">صحتك في صحنك</span>
+        </p>
+        <a class="btn" href="/contact.html">Prendre RDV</a>
+      </div>
+      <div class="footer-cols">
+        <div>
+          <h5>Mon cabinet</h5>
+          <p>Rue des Martyrs, Résidence Jannet<br />El Mourouj 5, Ben Arous</p>
+        </div>
+        <div>
+          <h5>Pages</h5>
+          <a href="/a-propos.html">À propos</a>
+          <a href="/services.html">Services</a>
+          <a href="/conseils.html">Conseils</a>
+          <a href="/contact.html">Contact</a>
+        </div>
+        <div>
+          <h5>Me suivre</h5>
+          <a href="https://www.instagram.com/explore/search/keyword/?q=nutrition%20mira" target="_blank" rel="noopener">Instagram — nutrition mira</a>
+        </div>
+      </div>
+      <p class="footer-bottom">© Amira Askri — Diététicienne Nutritionniste</p>
+    </footer>
+
+    <script type="module" src="/common.js"></script>
+    <script type="module" src="/contact.js"></script>
+  </body>
+</html>
