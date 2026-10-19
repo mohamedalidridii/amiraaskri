@@ -345,7 +345,7 @@ section {
   max-width: 14ch;
 }
 
-/* Text sits above the 3D olive branches */
+/* Text sits above the 3D spiral gallery */
 .hero > :not(canvas) {
   position: relative;
   z-index: 1;
@@ -353,29 +353,6 @@ section {
 
 .hero .ar-title {
   text-align: left;
-}
-
-/* Portrait on the right of the hero, with a thin gold arch around it */
-.hero .hero-portrait {
-  position: absolute;
-  top: 7rem;
-  right: 6vw;
-  width: clamp(260px, 26vw, 420px);
-}
-
-.hero-portrait .media.still {
-  width: 100%;
-  border-radius: 999px 999px 1rem 1rem;
-}
-
-.hero-portrait::before {
-  content: "";
-  position: absolute;
-  inset: -0.9rem;
-  border: 1px solid var(--accent);
-  border-radius: 999px 999px 1.5rem 1.5rem;
-  opacity: 0.6;
-  pointer-events: none;
 }
 
 .about {
@@ -909,14 +886,6 @@ canvas {
 
   .hero {
     height: 125svh;
-  }
-
-  .hero .hero-portrait {
-    position: relative;
-    top: auto;
-    right: auto;
-    width: min(300px, 72vw);
-    margin: 3rem auto 0;
   }
 
   .block-section,

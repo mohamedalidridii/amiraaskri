@@ -1,245 +1,159 @@
 import * as THREE from "three";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import gsap from "gsap";
-import { lenis, introStarted } from "./common.js";
+import { lenis } from "./common.js";
+import { vertexShader, fragmentShader } from "./shaders.js";
+
+// Amira's photos mixed in with the food photos
+const IMAGES = [
+  "img1.jpg",
+  "spiral-amira1.jpg",
+  "img2.jpg",
+  "img3.jpg",
+  "spiral-amira2.jpg",
+  "img5.jpg",
+  "img7.jpg",
+  "spiral-amira3.jpg",
+  "img8.jpg",
+  "img11.jpg",
+  "spiral-amira4.jpg",
+  "img12.jpg",
+];
 
 const CONFIG = {
-  cameraZ: 10,
-  mobileCameraZ: 13,
-  looseLeaves: 34,
-  mobileLooseLeaves: 18,
-  goldLeafRatio: 0.3,
-  floatAmplitude: 0.18,
-  scrollRotationMultiplier: 0.002,
-  rotationDecay: 0.92,
-  scrollRise: 2.5,
-  parallaxStrength: 0.12,
-};
-
-const COLORS = {
-  leaf: "#6f8f55",
-  leafUnderside: "#b7c2a4",
-  gold: "#c9a96e",
-  oliveGreen: "#5f7a2e",
-  oliveBlack: "#2b1f2a",
+  tilesPerRevolution: 15,
+  revolutions: 5,
+  startRadius: 5,
+  endRadius: 3.5,
+  tileHeightRatio: 1.1,
+  tileSegments: 24,
+  spiralGap: 0.35,
+  tileOverlap: 0.005,
+  cameraZ: 12,
+  cameraSmoothing: 0.075,
+  baseRotationSpeed: 0.001,
+  scrollRotationMultiplier: 0.0035,
+  rotationDecay: 0.9,
+  scrollMultiplier: 1.25,
+  cameraYMultiplier: 0.2,
+  parallaxStrength: 0.1,
 };
 
 const heroSection = document.querySelector(".hero");
-let isMobile = window.innerWidth < 1000;
+
+const totalTiles = Math.floor(CONFIG.tilesPerRevolution * CONFIG.revolutions);
+const angleStep = (Math.PI * 2) / CONFIG.tilesPerRevolution;
 
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
-  45,
+  75,
   heroSection.clientWidth / heroSection.clientHeight,
   0.1,
-  100,
+  1000,
 );
-camera.position.z = isMobile ? CONFIG.mobileCameraZ : CONFIG.cameraZ;
+camera.position.z = CONFIG.cameraZ;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(heroSection.clientWidth, heroSection.clientHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
 heroSection.appendChild(renderer.domElement);
 
-// Soft studio reflections so the gold reads as metal
-const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const textureLoader = new THREE.TextureLoader();
+const textures = IMAGES.map((src) =>
+  textureLoader.load(src, (t) => {
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  }),
+);
 
-scene.add(new THREE.HemisphereLight("#fff6e0", "#16291f", 0.6));
-const sun = new THREE.DirectionalLight("#fff1d6", 1.6);
-sun.position.set(4, 6, 6);
-scene.add(sun);
-
-const materials = {
-  leafTop: new THREE.MeshStandardMaterial({
-    color: COLORS.leaf,
-    roughness: 0.55,
-    side: THREE.FrontSide,
-  }),
-  leafBottom: new THREE.MeshStandardMaterial({
-    color: COLORS.leafUnderside,
-    roughness: 0.75,
-    side: THREE.BackSide,
-  }),
-  gold: new THREE.MeshStandardMaterial({
-    color: COLORS.gold,
-    metalness: 1,
-    roughness: 0.28,
-    side: THREE.DoubleSide,
-  }),
-  oliveGreen: new THREE.MeshPhysicalMaterial({
-    color: COLORS.oliveGreen,
-    roughness: 0.3,
-    clearcoat: 0.8,
-  }),
-  oliveBlack: new THREE.MeshPhysicalMaterial({
-    color: COLORS.oliveBlack,
-    roughness: 0.25,
-    clearcoat: 1,
-  }),
+const cameraPositionUniform = {
+  value: new THREE.Vector3(0, 0, CONFIG.cameraZ),
 };
 
-// Olive leaf: long and narrow, tapered at both ends, folded along the
-// midrib and slightly curved. Base at the origin, pointing up +Y.
-function createLeafGeometry(length, width) {
-  const geometry = new THREE.PlaneGeometry(1, 1, 6, 24);
-  const position = geometry.attributes.position;
-  for (let i = 0; i < position.count; i++) {
-    const u = position.getX(i);
-    const v = position.getY(i) + 0.5;
-    const half = width * Math.pow(Math.sin(Math.PI * v), 0.75) * (1 - 0.2 * v);
-    const x = u * 2 * half;
-    const z = Math.abs(x) * 0.5 + Math.sin(v * Math.PI) * 0.08 - v * v * 0.2;
-    position.setXYZ(i, x, v * length, z);
+const tileEdgesY = [0];
+
+for (let i = 0; i < totalTiles; i++) {
+  const progress = i / totalTiles;
+  const radius =
+    CONFIG.startRadius + (CONFIG.endRadius - CONFIG.startRadius) * progress;
+  const arcWidth = (2 * Math.PI * radius) / CONFIG.tilesPerRevolution;
+  const tileHeight = arcWidth * CONFIG.tileHeightRatio;
+  tileEdgesY.push(
+    tileEdgesY[i] - (tileHeight + CONFIG.spiralGap) / CONFIG.tilesPerRevolution,
+  );
+}
+
+const spiral = new THREE.Group();
+scene.add(spiral);
+
+for (let i = 0; i < totalTiles; i++) {
+  const progress = i / totalTiles;
+  const radius =
+    CONFIG.startRadius + (CONFIG.endRadius - CONFIG.startRadius) * progress;
+  const arcWidth = (2 * Math.PI * radius) / CONFIG.tilesPerRevolution;
+  const tileHeight = arcWidth * CONFIG.tileHeightRatio;
+  const tileAngle = arcWidth / radius + CONFIG.tileOverlap;
+
+  const centerY = (tileEdgesY[i] + tileEdgesY[i + 1]) / 2;
+  const slope = tileEdgesY[i + 1] - tileEdgesY[i];
+
+  const positions = [];
+  const uvCoords = [];
+  const indices = [];
+  const segments = CONFIG.tileSegments;
+
+  for (let row = 0; row <= 1; row++) {
+    for (let col = 0; col <= segments; col++) {
+      const angle = (col / segments - 0.5) * tileAngle;
+      positions.push(
+        Math.sin(angle) * radius,
+        (row - 0.5) * tileHeight + (col / segments - 0.5) * slope,
+        Math.cos(angle) * radius,
+      );
+      uvCoords.push(col / segments, row);
+    }
   }
+
+  for (let col = 0; col < segments; col++) {
+    const current = col;
+    const below = current + segments + 1;
+    indices.push(current, below, current + 1, below, below + 1, current + 1);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvCoords, 2));
+  geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  return geometry;
-}
 
-const leafGeometries = [
-  createLeafGeometry(1.5, 0.17),
-  createLeafGeometry(1.25, 0.15),
-  createLeafGeometry(1.7, 0.19),
-];
-const oliveGeometry = new THREE.SphereGeometry(0.2, 24, 16).scale(1, 1.3, 1);
-
-function createLeaf(gold = false) {
-  const geometry =
-    leafGeometries[Math.floor(Math.random() * leafGeometries.length)];
-  if (gold) return new THREE.Mesh(geometry, materials.gold);
-  const leaf = new THREE.Group();
-  leaf.add(new THREE.Mesh(geometry, materials.leafTop));
-  leaf.add(new THREE.Mesh(geometry, materials.leafBottom));
-  return leaf;
-}
-
-const UP = new THREE.Vector3(0, 1, 0);
-
-// A gold twig with alternating leaves and a few hanging olives
-function createBranch({ length = 4, leaves = 12, olives = 3, goldLeaves = 2 }) {
-  const branch = new THREE.Group();
-  const curve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(length * 0.33, 0.25, 0.1),
-    new THREE.Vector3(length * 0.66, 0.1, -0.1),
-    new THREE.Vector3(length, 0.35, 0),
-  ]);
-  branch.add(
-    new THREE.Mesh(new THREE.TubeGeometry(curve, 48, 0.03, 8), materials.gold),
-  );
-
-  for (let i = 0; i < leaves; i++) {
-    const t = 0.1 + (i / leaves) * 0.88;
-    const side = i % 2 === 0 ? 1 : -1;
-    const direction = curve
-      .getTangent(t)
-      .applyAxisAngle(
-        new THREE.Vector3(0, 0, 1),
-        side * (0.7 + Math.random() * 0.3),
-      )
-      .normalize();
-    const leaf = createLeaf(i < goldLeaves);
-    leaf.position.copy(curve.getPoint(t));
-    leaf.quaternion.setFromUnitVectors(UP, direction);
-    leaf.rotateY((Math.random() - 0.5) * 1.6);
-    leaf.scale.setScalar(0.75 + (1 - t) * 0.35);
-    branch.add(leaf);
-  }
-
-  for (let i = 0; i < olives; i++) {
-    const t = 0.3 + (i / olives) * 0.6;
-    const olive = new THREE.Mesh(
-      oliveGeometry,
-      i % 2 === 0 ? materials.oliveGreen : materials.oliveBlack,
-    );
-    olive.position
-      .copy(curve.getPoint(t))
-      .add(new THREE.Vector3(0, -0.32, 0.15));
-    olive.rotation.z = (Math.random() - 0.5) * 0.6;
-    branch.add(olive);
-  }
-
-  return branch;
-}
-
-const world = new THREE.Group();
-scene.add(world);
-
-// Everything that floats: { object, base position, phase, speed, depth }
-const floaters = [];
-
-function addFloater(object, x, y, z) {
-  object.position.set(x, y, z);
-  world.add(object);
-  floaters.push({
-    object,
-    base: new THREE.Vector3(x, y, z),
-    phase: Math.random() * Math.PI * 2,
-    speed: 0.4 + Math.random() * 0.5,
-    spin: (Math.random() - 0.5) * 0.25,
+  const material = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    uniforms: {
+      uMap: { value: textures[i % textures.length] },
+      uCameraPosition: cameraPositionUniform,
+    },
+    side: THREE.DoubleSide,
   });
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.y = centerY;
+
+  const tile = new THREE.Group();
+  tile.rotation.y = i * angleStep;
+  tile.add(mesh);
+  spiral.add(tile);
 }
 
-// Laid out for the hero's tall frame (visible area is roughly ±4.4 x ±4.1)
-const branchLayout = [
-  { x: 0.8, y: 2.6, z: 0, rz: -0.3, s: 1 },
-  { x: 4.6, y: -0.5, z: -1, rz: -0.35, s: 1, ry: Math.PI },
-  { x: -4.8, y: -3.4, z: -1.5, rz: 0.35, s: 1.1 },
-  { x: 0.8, y: -3.6, z: 0.5, rz: -0.15, s: 0.9 },
-];
-
-branchLayout.forEach(({ x, y, z, rz, s, ry = 0 }, i) => {
-  const branch = createBranch({
-    length: 4,
-    leaves: 12 + (i % 2) * 2,
-    olives: 2 + (i % 2),
-  });
-  branch.rotation.set(0, ry, rz);
-  branch.scale.setScalar(s);
-  addFloater(branch, x, y, z);
-});
-
-const looseCount = isMobile ? CONFIG.mobileLooseLeaves : CONFIG.looseLeaves;
-for (let i = 0; i < looseCount; i++) {
-  const leaf = createLeaf(Math.random() < CONFIG.goldLeafRatio);
-  leaf.rotation.set(
-    Math.random() * Math.PI,
-    Math.random() * Math.PI,
-    Math.random() * Math.PI,
-  );
-  leaf.scale.setScalar(0.5 + Math.random() * 0.5);
-  // Keep the title (top left) readable: re-roll positions that land behind it
-  let x, y;
-  do {
-    x = (Math.random() - 0.5) * 11;
-    y = (Math.random() - 0.5) * 9;
-  } while (!isMobile && x < 0.8 && y > -0.2);
-  addFloater(leaf, x, y, -5 + Math.random() * 6);
-}
-
-// Leaves grow in when the page intro starts
-const worldScale = () => (isMobile ? 0.6 : 1);
-world.scale.setScalar(0.001);
-introStarted.then(() => {
-  const s = worldScale();
-  gsap.to(world.scale, { x: s, y: s, z: s, duration: 2, ease: "power3.out" });
-  floaters.forEach(({ object }, i) => {
-    gsap.from(object.rotation, {
-      z: object.rotation.z + 1.2,
-      duration: 2.2,
-      delay: i * 0.01,
-      ease: "power3.out",
-    });
-  });
-});
+const spiralHeight = Math.abs(tileEdgesY[totalTiles]);
 
 let scrollY = 0;
 let spinVelocity = 0;
 
 lenis.on("scroll", (e) => {
-  scrollY = e.scroll;
+  scrollY = window.pageYOffset;
   spinVelocity = e.velocity * CONFIG.scrollRotationMultiplier;
 });
 
@@ -253,32 +167,31 @@ window.addEventListener("mousemove", (e) => {
   mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
 });
 
-const clock = new THREE.Clock();
+let isMobile = window.innerWidth < 1000;
 
 function animate() {
   requestAnimationFrame(animate);
-  const time = clock.getElapsedTime();
-  const progress = Math.min(scrollY / heroSection.clientHeight, 1);
 
-  floaters.forEach(({ object, base, phase, speed, spin }) => {
-    // Closer objects rise faster on scroll, for depth
-    const depth = (base.z + 6) / 8;
-    object.position.y =
-      base.y +
-      Math.sin(time * speed + phase) * CONFIG.floatAmplitude +
-      progress * CONFIG.scrollRise * depth;
-    object.position.x = base.x + Math.cos(time * speed * 0.7 + phase) * 0.08;
-    object.rotation.x += spin * 0.004;
-    object.rotation.y += spin * 0.006 + spinVelocity * 0.5;
-  });
-  spinVelocity *= CONFIG.rotationDecay;
+  const progress = Math.min(
+    scrollY / (window.innerHeight * CONFIG.scrollMultiplier),
+    1,
+  );
+  camera.position.y +=
+    (-(progress * spiralHeight * CONFIG.cameraYMultiplier) -
+      camera.position.y) *
+    CONFIG.cameraSmoothing;
 
   if (!isMobile) {
-    smoothX += (mouseX - smoothX) * 0.03;
-    smoothY += (mouseY - smoothY) * 0.03;
-    world.rotation.y = smoothX * CONFIG.parallaxStrength;
-    world.rotation.x = smoothY * CONFIG.parallaxStrength * 0.6;
+    smoothX += (mouseX - smoothX) * 0.02;
+    smoothY += (mouseY - smoothY) * 0.02;
+    spiral.rotation.x = smoothY * CONFIG.parallaxStrength;
+    spiral.rotation.z = -smoothX * CONFIG.parallaxStrength * 0.3;
   }
+
+  cameraPositionUniform.value.copy(camera.position);
+
+  spiral.rotation.y += CONFIG.baseRotationSpeed + spinVelocity;
+  spinVelocity *= CONFIG.rotationDecay;
 
   renderer.render(scene, camera);
 }
@@ -288,8 +201,7 @@ animate();
 window.addEventListener("resize", () => {
   isMobile = window.innerWidth < 1000;
   camera.aspect = heroSection.clientWidth / heroSection.clientHeight;
-  camera.position.z = isMobile ? CONFIG.mobileCameraZ : CONFIG.cameraZ;
+  camera.position.z = isMobile ? 15 : CONFIG.cameraZ;
   camera.updateProjectionMatrix();
-  if (!gsap.isTweening(world.scale)) world.scale.setScalar(worldScale());
   renderer.setSize(heroSection.clientWidth, heroSection.clientHeight);
 });
