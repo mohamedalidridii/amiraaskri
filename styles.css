@@ -1065,3 +1065,30 @@ canvas {
   content: "%";
   margin-left: 0.1rem;
 }
+
+/* Koyotec credit tag */
+
+.koyotec-tag {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  z-index: 95;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.75rem;
+  border-radius: 0.5rem 0 0 0.5rem;
+  background-color: var(--accent);
+  color: var(--on-accent);
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translate(0.4rem, -50%);
+  transition: transform 0.3s ease;
+}
+
+.koyotec-tag:hover,
+.koyotec-tag:focus-visible {
+  transform: translate(0, -50%);
+}
